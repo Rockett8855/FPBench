@@ -88,20 +88,19 @@ The semantics of these programs is ordinary function evaluation,
 \begin{mathpar}
 \inferrule{
   H[x_i \mapsto x_i^0]: c \evalto \top \\
-  H[x_i \mapsto x_i^0]: e_i \evalto x_i'
+  H[x_i \mapsto x_i^0]: e_i \evalto x_i' \\
+  H: (\C{while}\:c\:([x_i\:x_i'\:e_i]_i)\:y) \evalto v
 }{
-  H: (\C{while}\:c\:([x_i\:x_i^0\:e_i]_i)\:y)
-  \to
-  H: (\C{while}\:c\:([x_i\:x_i'\:e_i]_i)\:y)
+  H: (\C{while}\:c\:([x_i\:x_i^0\:e_i]_i)\:y) \evalto v
 }
 
 \inferrule{
   H[x_i \mapsto x_i^0] : c \evalto \bot \\
   H[x_i \mapsto x_i^0] : y \evalto v
 }{
-  H: (\C{while}\:c\:([x_i\:x_i^0\:e_i]_i)\:v)
+  H: (\C{while}\:c\:([x_i\:x_i^0\:e_i]_i)\:y)
   \evalto
-  w
+  v
 }
 \end{mathpar}
 
