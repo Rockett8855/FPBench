@@ -72,11 +72,15 @@
   [((? list?) _) (apply application->c (car expr) (map (λ (x) (expr->c x #:type type)) (cdr expr)))]
   [(_ _) (value->c expr #:type type)])
 
-(define (function->c args body #:type [type 'binary64] #:name [name 'f])
+(define (comment-in props)
+  (format "// ~a\n// ~a\n" (dict-ref props ':name) (dict-ref props ':pre)))
+
+(define (function->c args body #:type [type 'binary64] #:name [name 'f] #:props props)
   (define arg-strings
     (for/list ([var args])
       (format "~a ~a" type (fix-name (if (list? var) (car var) var)))))
-  (format "~a ~a(~a) {\n~a}\n"
+  (format "~a~a ~a(~a) {\n~a}\n"
+          (comment-in props)
           type name (string-join arg-strings ", ")
           (with-output-to-string (λ () (program->c body #:type type)))))
 
@@ -84,27 +88,28 @@
   (match body
     [`(let ([,vars ,vals] ...) ,retexpr)
      (for ([var vars] [val vals])
-       (printf "\t~a next_~a = ~a;\n" (typeof val #:fptype type) var (expr->c val #:type type)))
+       (printf "  ~a next_~a = ~a;\n" (typeof val #:fptype type) var (expr->c val #:type type)))
      (for ([var vars] [val vals])
-       (printf "\t~a ~a = next_~a;\n" (typeof val #:fptype type) var var))
+       (printf "  ~a ~a = next_~a;\n" (typeof val #:fptype type) var var))
      (program->c retexpr #:type type)]
     [`(while ,cond ([,vars ,inits ,updates] ...) ,retexpr)
      (for ([var vars] [init inits])
-       (printf "\t~a ~a = ~a;\n" (typeof init #:fptype type) var (expr->c init #:type type)))
-     (printf "\twhile (~a) {\n" (expr->c cond #:type type))
+       (printf "  ~a ~a = ~a;\n" (typeof init #:fptype type) var (expr->c init #:type type)))
+     (printf "  while (~a) {\n" (expr->c cond #:type type))
      (for ([var vars] [update updates])
-       (printf "\t\t~a next_~a = ~a;\n" (typeof update #:fptype type) var (expr->c update #:type type)))
+       (printf "    ~a next_~a = ~a;\n" (typeof update #:fptype type) var (expr->c update #:type type)))
      (for ([var vars])
-       (printf "\t\t~a = next_~a;\n" var var))
-     (printf "\t}\n")
+       (printf "    ~a = next_~a;\n" var var))
+     (printf "  }\n")
      (program->c retexpr #:type type)]
     [_
-     (printf "\treturn ~a;\n" (expr->c body #:type type))]))
+     (printf "  return ~a;\n" (expr->c body #:type type))]))
 
 (define (compile-program prog #:name name)
   (match-define (list 'FPCore (list args ...) props ... body) prog)
   (define-values (_ properties) (parse-properties props))
-  (function->c args body #:type (dict-ref properties ':type 'binary64) #:name name))
+  (function->c args body #:type (dict-ref properties ':type 'binary64) #:name name
+               #:props properties))
 
 (module+ main
   (require racket/cmdline)
